@@ -190,9 +190,13 @@ export class SolarSystemComponent implements OnInit, OnDestroy {
     this.createSolarSystem();
     this.createAsteroidBelt();
 
-    // Luces
-    const ambientLight = new THREE.AmbientLight(0x404060, 0.3);
+    // Luces - aumentadas para mejor visibilidad de planetas
+    const ambientLight = new THREE.AmbientLight(0x667799, 0.8);
     this.scene.add(ambientLight);
+
+    // Luz hemisférica para iluminación más natural
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444466, 0.5);
+    this.scene.add(hemiLight);
 
     // Handle resize
     window.addEventListener('resize', this.onResize);
@@ -347,9 +351,14 @@ export class SolarSystemComponent implements OnInit, OnDestroy {
       this.sunGlows.push(glow);
     });
 
-    // Luz del sol
-    const sunLight = new THREE.PointLight(0xffffee, 2, 200);
+    // Luz del sol - aumentada para iluminar mejor los planetas
+    const sunLight = new THREE.PointLight(0xffffee, 3, 500);
     sunGroup.add(sunLight);
+
+    // Segunda luz más suave para rellenar sombras
+    const fillLight = new THREE.PointLight(0xffeedd, 1, 300);
+    fillLight.position.set(0, 10, 0);
+    sunGroup.add(fillLight);
 
     this.solarSystem.add(sunGroup);
 
@@ -357,12 +366,14 @@ export class SolarSystemComponent implements OnInit, OnDestroy {
     this.PLANETS.forEach((planet) => {
       const planetGroup = new THREE.Group();
 
-      // Mesh del planeta
+      // Mesh del planeta con emisión para mejor visibilidad
       const geometry = new THREE.SphereGeometry(planet.radius, 32, 32);
       const material = new THREE.MeshStandardMaterial({
         color: planet.color,
-        roughness: 0.7,
+        roughness: 0.6,
         metalness: 0.1,
+        emissive: planet.color,
+        emissiveIntensity: 0.15,
       });
       const mesh = new THREE.Mesh(geometry, material);
       mesh.position.x = planet.distance;
@@ -374,7 +385,9 @@ export class SolarSystemComponent implements OnInit, OnDestroy {
         const moonGeom = new THREE.SphereGeometry(0.27, 16, 16);
         const moonMat = new THREE.MeshStandardMaterial({
           color: 0xcccccc,
-          roughness: 0.9,
+          roughness: 0.8,
+          emissive: 0x666666,
+          emissiveIntensity: 0.2,
         });
         const moon = new THREE.Mesh(moonGeom, moonMat);
         moon.position.x = planet.distance + 2;
