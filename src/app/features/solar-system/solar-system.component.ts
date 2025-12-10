@@ -43,7 +43,7 @@ interface PlanetMesh {
 export class SolarSystemComponent implements OnInit, OnDestroy {
   @ViewChild('canvas', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('video', { static: true }) videoRef!: ElementRef<HTMLVideoElement>;
-  @ViewChild('preview', { static: true }) previewRef!: ElementRef<HTMLVideoElement>;
+  @ViewChild('preview') previewRef!: ElementRef<HTMLVideoElement>;
 
   // Inyección de dependencias
   private ngZone = inject(NgZone);
@@ -53,6 +53,9 @@ export class SolarSystemComponent implements OnInit, OnDestroy {
   readonly isLoading = signal(true);
   readonly loadingStatus = signal('Inicializando...');
   readonly useMouseFallback = signal(false);
+
+  // Stream de video para conectar al preview después
+  private videoStream: MediaStream | null = null;
 
   // Three.js objects
   private renderer!: THREE.WebGLRenderer;
@@ -136,9 +139,8 @@ export class SolarSystemComponent implements OnInit, OnDestroy {
       const camReady = await this.mediaPipe.startTracking(this.videoRef.nativeElement);
 
       if (camReady) {
-        // Conectar preview de video
-        this.previewRef.nativeElement.srcObject = this.videoRef.nativeElement.srcObject;
-        this.previewRef.nativeElement.play();
+        // Guardar stream para conectar al preview después
+        this.videoStream = this.videoRef.nativeElement.srcObject as MediaStream;
       } else {
         this.useMouseFallback.set(true);
         this.setupMouseControls();
@@ -153,6 +155,8 @@ export class SolarSystemComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       this.isLoading.set(false);
       this.startAnimation();
+      // Conectar preview después de que se renderice el DOM
+      this.connectPreview();
     }, 500);
   }
 
@@ -507,6 +511,23 @@ export class SolarSystemComponent implements OnInit, OnDestroy {
     });
 
     canvas.addEventListener('touchend', () => (this.mouse.isDown = false));
+  }
+
+  /**
+   * Conecta el stream de video al preview una vez que está disponible en el DOM
+   */
+  private connectPreview(): void {
+    if (this.videoStream && !this.useMouseFallback()) {
+      // Esperar un tick para que Angular renderice el preview
+      setTimeout(() => {
+        if (this.previewRef?.nativeElement) {
+          this.previewRef.nativeElement.srcObject = this.videoStream;
+          this.previewRef.nativeElement.play().catch(() => {
+            // Ignorar error si el video ya está reproduciéndose
+          });
+        }
+      }, 100);
+    }
   }
 
   /**
