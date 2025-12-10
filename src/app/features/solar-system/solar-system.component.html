@@ -1,0 +1,104 @@
+<div class="container">
+  <!-- Canvas de Three.js -->
+  <canvas #canvas class="canvas"></canvas>
+
+  <!-- Video oculto para captura de webcam -->
+  <video #video class="hidden" playsinline muted></video>
+
+  <!-- Overlay de carga -->
+  @if (isLoading()) {
+    <div class="loading-overlay">
+      <div class="spinner">
+        <div class="spinner-ring"></div>
+        <div class="spinner-ring inner"></div>
+      </div>
+      <p class="loading-text">{{ loadingStatus() }}</p>
+    </div>
+  }
+
+  <!-- Preview de webcam -->
+  @if (!isLoading() && !useMouseFallback()) {
+    <div class="webcam-preview">
+      <video #preview playsinline muted class="preview-video"></video>
+      <div
+        class="detection-indicator"
+        [class.detected]="mediaPipe.handDetected()"
+      ></div>
+      <div class="preview-label">
+        @if (mediaPipe.handDetected()) {
+          Mano detectada
+        } @else {
+          Esperando mano...
+        }
+      </div>
+    </div>
+  }
+
+  <!-- HUD de estado -->
+  @if (!isLoading()) {
+    <div class="status-hud">
+      <div class="status-row">
+        <div
+          class="status-dot"
+          [class.active]="useMouseFallback() || mediaPipe.handDetected()"
+          [class.mouse]="useMouseFallback()"
+        ></div>
+        <span>
+          @if (useMouseFallback()) {
+            Control: Mouse/Touch
+          } @else if (mediaPipe.handDetected()) {
+            Mano detectada
+          } @else {
+            Sin mano
+          }
+        </span>
+      </div>
+      <div class="status-row">
+        <div
+          class="status-dot"
+          [class.rotate]="mediaPipe.gesture() === 'point'"
+          [class.zoom]="mediaPipe.gesture() === 'pinch'"
+        ></div>
+        <span>
+          @switch (mediaPipe.gesture()) {
+            @case ('point') { Rotando }
+            @case ('pinch') { Zoom }
+            @default { Esperando gesto }
+          }
+        </span>
+      </div>
+    </div>
+  }
+
+  <!-- Instrucciones -->
+  @if (!isLoading()) {
+    <div class="instructions">
+      <h3>Controles</h3>
+      @if (useMouseFallback()) {
+        <ul>
+          <li><span class="icon">Mouse</span> Arrastra para rotar</li>
+          <li><span class="icon">Scroll</span> Zoom</li>
+        </ul>
+      } @else {
+        <ul>
+          <li><span class="icon">Mano</span> Mano abierta - Rotar</li>
+          <li><span class="icon">Pinch</span> Pinch - Zoom</li>
+        </ul>
+      }
+    </div>
+  }
+
+  <!-- Título -->
+  @if (!isLoading()) {
+    <div class="title">
+      <h1>Sistema Solar</h1>
+      <p>
+        @if (useMouseFallback()) {
+          Control interactivo
+        } @else {
+          Control gestual MediaPipe
+        }
+      </p>
+    </div>
+  }
+</div>
