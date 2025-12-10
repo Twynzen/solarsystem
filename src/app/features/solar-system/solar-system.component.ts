@@ -247,41 +247,69 @@ export class SolarSystemComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Crea efecto de nebulosa de fondo
+   * Crea una textura circular difusa para la nebulosa
+   */
+  private createNebulaTexture(): THREE.Texture {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d')!;
+
+    // Crear gradiente radial circular difuso
+    const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    gradient.addColorStop(0.3, 'rgba(255, 255, 255, 0.5)');
+    gradient.addColorStop(0.6, 'rgba(255, 255, 255, 0.1)');
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 128, 128);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
+  }
+
+  /**
+   * Crea efecto de nebulosa de fondo con sprites suaves
    */
   private createNebula(): void {
-    const geometry = new THREE.BufferGeometry();
-    const positions: number[] = [];
-    const colors: number[] = [];
+    const texture = this.createNebulaTexture();
 
-    for (let i = 0; i < 200; i++) {
-      positions.push(
-        (Math.random() - 0.5) * 800,
-        (Math.random() - 0.5) * 400,
-        -300 - Math.random() * 500
-      );
+    // Crear varias capas de nebulosa con diferentes colores
+    const nebulaConfigs = [
+      { count: 30, color: 0x4a1a6b, size: 80, opacity: 0.04, zRange: [-400, -600] },
+      { count: 20, color: 0x1a3a6b, size: 100, opacity: 0.03, zRange: [-500, -800] },
+      { count: 15, color: 0x6b1a4a, size: 120, opacity: 0.02, zRange: [-600, -900] },
+    ];
 
-      // Colores púrpura/azul
-      colors.push(
-        0.3 + Math.random() * 0.3,
-        0.1 + Math.random() * 0.2,
-        0.5 + Math.random() * 0.4
-      );
-    }
+    nebulaConfigs.forEach((config) => {
+      const geometry = new THREE.BufferGeometry();
+      const positions: number[] = [];
 
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      for (let i = 0; i < config.count; i++) {
+        positions.push(
+          (Math.random() - 0.5) * 1000,
+          (Math.random() - 0.5) * 500,
+          config.zRange[0] + Math.random() * (config.zRange[1] - config.zRange[0])
+        );
+      }
 
-    const material = new THREE.PointsMaterial({
-      size: 50,
-      vertexColors: true,
-      transparent: true,
-      opacity: 0.15,
-      sizeAttenuation: true,
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+      const material = new THREE.PointsMaterial({
+        size: config.size,
+        map: texture,
+        color: config.color,
+        transparent: true,
+        opacity: config.opacity,
+        sizeAttenuation: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+
+      const nebula = new THREE.Points(geometry, material);
+      this.scene.add(nebula);
     });
-
-    const nebula = new THREE.Points(geometry, material);
-    this.scene.add(nebula);
   }
 
   /**
